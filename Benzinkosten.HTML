@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spritkostenrechner</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a cleaner look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Subtler background gradient */
+            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        /* Smooth transition for result fade-in */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+    
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">🚗 Spritkostenrechner</h1>
+        <p class="text-gray-500 text-sm">Berechne deinen Verbrauch und die Kosten pro Kilometer.</p>
+    </div>
+
+    <form id="calculatorForm" class="space-y-6" onsubmit="return false;">
+        
+        <!-- Input: Gefahrene Kilometer -->
+        <div>
+            <label for="kilometer" class="block text-sm font-medium text-gray-700 mb-1">Gefahrene Kilometer (km)</label>
+            <div class="relative">
+                <input type="number" id="kilometer" step="0.1" min="0.1" required
+                    class="block w-full pl-3 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-gray-900 placeholder-gray-400"
+                    placeholder="z.B. 450.5">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">km</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input: Liter getankt -->
+        <div>
+            <label for="liter" class="block text-sm font-medium text-gray-700 mb-1">Getankte Menge (Liter)</label>
+            <div class="relative">
+                <input type="number" id="liter" step="0.01" min="0.01" required
+                    class="block w-full pl-3 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-gray-900 placeholder-gray-400"
+                    placeholder="z.B. 35.2">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">L</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input: Preis pro Liter -->
+        <div>
+            <label for="preis" class="block text-sm font-medium text-gray-700 mb-1">Preis pro Liter (€)</label>
+            <div class="relative">
+                <input type="number" id="preis" step="0.01" min="0.01" required
+                    class="block w-full pl-3 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm text-gray-900 placeholder-gray-400"
+                    placeholder="z.B. 1.85">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span class="text-gray-500 sm:text-sm">€</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" onclick="calculateCosts()"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition duration-200 ease-in-out transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+            Berechnen
+        </button>
+    </form>
+
+    <!-- Results Section (Hidden initially) -->
+    <div id="results" class="hidden mt-8 pt-6 border-t border-gray-200 fade-in">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Deine Ergebnisse:</h2>
+        
+        <div class="grid grid-cols-1 gap-4">
+            <!-- Result: Verbrauch -->
+            <div class="bg-blue-50 p-4 rounded-lg flex items-center justify-between border border-blue-100">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    <div>
+                        <p class="text-sm text-gray-500">Durchschnittsverbrauch</p>
+                        <p class="text-xl font-bold text-gray-900"><span id="resultVerbrauch">0.00</span> <span class="text-base font-medium text-gray-600">L / 100km</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result: Kosten pro km -->
+            <div class="bg-green-50 p-4 rounded-lg flex items-center justify-between border border-green-100">
+                <div class="flex items-center">
+                    <svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <div>
+                        <p class="text-sm text-gray-500">Kosten pro Kilometer</p>
+                        <p class="text-xl font-bold text-gray-900"><span id="resultKostenKm">0.00</span> <span class="text-base font-medium text-gray-600">€ / km</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Extra Result: Gesamtkosten -->
+            <div class="bg-gray-50 p-4 rounded-lg flex items-center justify-between border border-gray-200 mt-2">
+                 <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <div>
+                        <p class="text-sm text-gray-500">Gesamtkosten Tankfüllung</p>
+                        <p class="text-lg font-semibold text-gray-700"><span id="resultGesamt">0.00</span> €</p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+        
+        <button type="button" onclick="resetForm()" class="mt-6 w-full text-center text-sm text-gray-500 hover:text-gray-700 transition-colors underline">
+            Neue Berechnung
+        </button>
+    </div>
+</div>
+
+<script>
+    function calculateCosts() {
+        // 1. Get input values and convert them to numbers
+        const kmInput = document.getElementById('kilometer').value;
+        const literInput = document.getElementById('liter').value;
+        const preisInput = document.getElementById('preis').value;
+
+        // Basic validation: Check if fields are empty
+        if (!kmInput || !literInput || !preisInput) {
+            // Very simple visual feedback instead of alert()
+            const btn = document.querySelector('button');
+            const originalText = btn.innerText;
+            btn.innerText = "Bitte alle Felder ausfüllen!";
+            btn.classList.add('bg-red-500', 'hover:bg-red-600');
+            btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }, 2000);
+            return;
+        }
+
+        const km = parseFloat(kmInput);
+        const liter = parseFloat(literInput);
+        const preis = parseFloat(preisInput);
+
+        // Additional validation: Ensure numbers are greater than 0 to avoid division by zero
+        if (km <= 0) return;
+
+        // 2. Calculate values
+        // Formel Verbrauch: (Getankte Liter / Gefahrene km) * 100
+        const verbrauchPro100km = (liter / km) * 100;
+        
+        // Formel Gesamtkosten: Getankte Liter * Preis pro Liter
+        const gesamtkosten = liter * preis;
+        
+        // Formel Kosten pro km: Gesamtkosten / Gefahrene km  (oder: (Verbrauch/100) * Preis)
+        const kostenProKm = gesamtkosten / km;
+
+        // 3. Update the UI
+        // Format to 2 decimal places and use German locale formatting implicitly via UI context (dot vs comma could be improved further if needed, but standard parseFloat expects dot)
+        document.getElementById('resultVerbrauch').innerText = verbrauchPro100km.toFixed(2);
+        document.getElementById('resultKostenKm').innerText = kostenProKm.toFixed(3); // Often 3 decimals are nice for per km costs
+        document.getElementById('resultGesamt').innerText = gesamtkosten.toFixed(2);
+
+        // Show the results div with animation
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.classList.remove('hidden');
+        
+        // Re-trigger animation if clicked again
+        resultsDiv.classList.remove('fade-in');
+        void resultsDiv.offsetWidth; // Trigger reflow
+        resultsDiv.classList.add('fade-in');
+    }
+
+    function resetForm() {
+        document.getElementById('calculatorForm').reset();
+        document.getElementById('results').classList.add('hidden');
+        document.getElementById('kilometer').focus();
+    }
+</script>
+
+</body>
+</html>
