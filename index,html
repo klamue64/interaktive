@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktiver Quizmaster</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1a1a1e;
+            --accent-color: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            background-color: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .score-board {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .question {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .option-btn {
+            background-color: #26262b;
+            color: var(--text-main);
+            border: 2px solid #3f3f46;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent-color);
+            background-color: #2e2e35;
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .option-btn.correct {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: var(--success);
+            color: #10b981;
+        }
+
+        .option-btn.wrong {
+            background-color: rgba(239, 68, 68, 0.2);
+            border-color: var(--error);
+            color: #ef4444;
+        }
+
+        .next-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: none;
+            margin: 0 auto;
+        }
+
+        .next-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .feedback {
+            margin-top: 1rem;
+            font-weight: 600;
+            height: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <h1>Quizmaster</h1>
+    <div class="score-board">Punkte: <span id="score">0</span></div>
+    
+    <div id="quiz-box">
+        <div class="question" id="question-text">Frage wird geladen...</div>
+        <div class="options-grid" id="options-container">
+            <!-- Buttons werden dynamisch eingefügt -->
+        </div>
+        <div class="feedback" id="feedback-text"></div>
+        <button class="next-btn" id="next-button" onclick="nextQuestion()">Nächste Frage</button>
+    </div>
+</div>
+
+<script>
+    // Sample Fragen-Pool (Lässt sich beliebig erweitern!)
+    const quizData = [
+        {
+            question: "Welches Element der Naturphilosophie besagt laut dem Kybalion: 'Alles fließt aus und ein; alles hat seine Gezeiten'?",
+            options: ["Das Prinzip der Polarität", "Das Prinzip des Rhythmus", "Das Prinzip der Schwingung", "Das Prinzip der Ursache und Wirkung"],
+            correct: 1
+        },
+        {
+            question: "Welches populäre Linux-Betriebssystem verwendet den 'Cinnamon'-Desktop als Flaggschiff?",
+            options: ["Ubuntu", "Fedora", "Linux Mint", "Arch Linux"],
+            correct: 2
+        },
+        {
+            question: "Was bewirkt der Botenstoff Dopamin, wenn das Gehirn intensiv auf Musik reagiert?",
+            options: ["Er aktiviert das Belohnungssystem", "Er drosselt den Puls massiv", "Er blockiert den Hörkortex", "Er löst Müdigkeit aus"],
+            correct: 0
+        },
+        {
+            question: "Aus welcher Epoche der Musikgeschichte stammen die berühmtesten, minutenlangen Gitarrensolos von Bands wie Pink Floyd?",
+            options: ["1950er & 60er", "1970er & 80er", "1990er & 2000er", "2010er & 20er"],
+            correct: 1
+        }
+    ];
+
+    let currentQuestionIndex = 0;
+    let score = 0;
+
+    const questionElement = document.getElementById("question-text");
+    const optionsContainer = document.getElementById("options-container");
+    const feedbackElement = document.getElementById("feedback-text");
+    const nextButton = document.getElementById("next-button");
+    const scoreElement = document.getElementById("score");
+
+    function loadQuestion() {
+        resetState();
+        let currentQuestion = quizData[currentQuestionIndex];
+        questionElement.innerText = currentQuestion.question;
+
+        currentQuestion.options.forEach((option, index) => {
+            const button = document.createElement("button");
+            button.innerText = option;
+            button.classList.add("option-btn");
+            button.addEventListener("click", () => selectOption(index, button));
+            optionsContainer.appendChild(button);
+        });
+    }
+
+    function resetState() {
+        nextButton.style.display = "none";
+        feedbackElement.innerText = "";
+        while (optionsContainer.firstChild) {
+            optionsContainer.removeChild(optionsContainer.firstChild);
+        }
+    }
+
+    function selectOption(selectedIndex, clickedButton) {
+        const correctIndex = quizData[currentQuestionIndex].correct;
+        const allButtons = optionsContainer.querySelectorAll(".option-btn");
+
+        allButtons.forEach(btn => btn.disabled = true);
+
+        if (selectedIndex === correctIndex) {
+            clickedButton.classList.add("correct");
+            feedbackElement.style.color = "#10b981";
+            feedbackElement.innerText = "Richtig!";
+            score++;
+            scoreElement.innerText = score;
+        } else {
+            clickedButton.classList.add("wrong");
+            allButtons[correctIndex].classList.add("correct");
+            feedbackElement.style.color = "#ef4444";
+            feedbackElement.innerText = "Leider falsch.";
+        }
+
+        nextButton.style.display = "block";
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < quizData.length) {
+            loadQuestion();
+        } else {
+            showFinalScore();
+        }
+    }
+
+    function showFinalScore() {
+        resetState();
+        questionElement.innerText = `Quiz beendet! Du hast ${score} von ${quizData.length} Fragen richtig beantwortet.`;
+    }
+
+    // Quiz initial starten
+    loadQuestion();
+</script>
+</body>
+</html>
